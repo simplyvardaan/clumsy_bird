@@ -17,6 +17,9 @@ game.GameOverScreen = me.ScreenObject.extend({
             me.save.topSteps = game.data.steps;
             game.data.newHiScore = true;
         }
+        if (window.onGameOver) {
+            window.onGameOver(game.data.steps);
+        }
         me.input.bindKey(me.input.KEY.ENTER, "enter", true);
         me.input.bindKey(me.input.KEY.SPACE, "enter", false)
         me.input.bindPointer(me.input.pointer.LEFT, me.input.KEY.ENTER);

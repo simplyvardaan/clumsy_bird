@@ -45,13 +45,32 @@ game.PlayScreen = me.ScreenObject.extend({
         me.game.world.addChild(this.getReady, 11);
 
         var that = this;
-        var fadeOut = new me.Tween(this.getReady).to({alpha: 0}, 2000)
-            .easing(me.Tween.Easing.Linear.None)
-            .onComplete(function() {
+        window.triggerSimulationStart = function() {
+            if (!game.data.start) {
                 game.data.start = true;
+                if (window.onGameStart) {
+                    window.onGameStart();
+                }
                 me.game.world.addChild(new game.PipeGenerator(), 0);
                 me.game.world.removeChild(that.getReady);
-            }).start();
+                
+                // Give the bird a small initial flap to start flight smoothly
+                if (that.bird) {
+                    that.bird.gravityForce = 0.2;
+                    if (window.onJump) {
+                        window.onJump();
+                    }
+                }
+            }
+        };
+
+        if (window.onResetPlayScreen) {
+            window.onResetPlayScreen();
+        }
+
+        if (window.showPreflightOverlay) {
+            window.showPreflightOverlay();
+        }
     },
 
     onDestroyEvent: function() {
@@ -63,5 +82,9 @@ game.PlayScreen = me.ScreenObject.extend({
         this.ground2 = null;
         me.input.unbindKey(me.input.KEY.SPACE);
         me.input.unbindPointer(me.input.pointer.LEFT);
+        window.triggerSimulationStart = null;
+        if (window.hidePreflightOverlay) {
+            window.hidePreflightOverlay();
+        }
     }
 });

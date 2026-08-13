@@ -1,49 +1,1001 @@
 <!DOCTYPE HTML>
 <html lang="en">
     <head>
-        <title>Clumsy Bird</title>
+        <title>CLUMSY BIRD // COCKPIT SIMULATOR</title>
         <link rel="apple-touch-icon-precomposed" href="data/img/touch-icon-iphone.png"/>
         <link rel="apple-touch-icon-precomposed" sizes="120x120" href="data/img/touch-icon-iphone-retina.png"/>
         <link rel="shortcut icon" href="data/img/favicon.ico">
-        <link rel="stylesheet" type="text/css" media="screen" href="index.css">
+        <!-- Cache-busting version query parameter added -->
+        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=110">
         <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
         <meta name="apple-mobile-web-app-title" content="Clumsy Bird">
         <meta charset="UTF-8" />
-        <meta name="description" content="Clumsy Bird - A Flappy Bird clone using MelonJS"/>
-        <meta name="keywords" content="flappybird, flappy, bird, game, html5, melonjs,clone"/>
-        <meta name="robots" content="index, follow">
-        <meta name="google-site-verification" content="RDZI9SqVaffd48uHfZMv67-YdvviOMe2HuULEYqVgd4" />
-        <meta property="og:image" content="http://ellisonleao.github.io/clumsy-bird/data/img/bg.png" />
-        <meta property="og:title" content="Clumsy Bird - A Flappy Bird clone using MelonJS"/>
-        <meta property="og:url" content="http://ellisonleao.github.io/clumsy-bird/"/>
-        <meta property="og:site_name" content="Clumsy Bird - MelonJS"/>
-
-        <!-- Twitter Card -->
-        <meta name="twitter:hashtag" content="clumsybird" />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:site" content="@ellisonleao" />
-        <meta name="twitter:creator" content="@ellisonleao" />
-        <meta name="twitter:title" content="Clumsy Bird" />
-        <meta name="twitter:description" content="A Flappy Bird melonJS clone" />
-
-        <!-- Humans -->
-        <link rel="author" href="humans.txt" />
+        <meta name="description" content="Clumsy Bird - Cyber Cockpit. Futuristic spaceship terminal wrapper with telemetry outputs, scanlines, and high fidelity themes."/>
+        
+        <!-- Google Fonts & FontAwesome icons -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     </head>
 
     <body>
-        <!-- Canvas placeholder -->
-        <div id="screen"></div>
+        <!-- Ambient mesh particle canvas background -->
+        <canvas id="ambient-canvas"></canvas>
 
-        <!-- melonJS Library -->
+        <div id="cockpit-wrapper">
+            <!-- Background Grid & Glow Effects -->
+            <div class="grid-overlay"></div>
+            <div class="glow-orb orb-1"></div>
+            <div class="glow-orb orb-2"></div>
+
+            <!-- Cockpit Header -->
+            <div class="cockpit-header glass-panel">
+                <div class="header-left">
+                    <span class="pulse-indicator"></span>
+                    <span class="header-label">PILOT STATUS:</span>
+                    <span class="header-value" id="hdr-pilot-status">OFFLINE</span>
+                </div>
+                <div class="header-center">
+                    <span class="logo-accent">CLUMSY</span> BIRD
+                </div>
+                <div class="header-right">
+                    <span class="header-label">COGNITIVE INDEX:</span>
+                    <span class="header-value" id="hdr-cognitive-ratio">100%</span>
+                    <span class="header-label">| SIM TIME:</span>
+                    <span class="header-value" id="hdr-system-time">00:00:00</span>
+                </div>
+            </div>
+
+            <!-- Dashboard Body -->
+            <div class="cockpit-body">
+                
+                <!-- Left Panel -->
+                <div class="side-panel left-panel">
+                    <!-- Pilot Profile -->
+                    <div class="profile-card glass-panel">
+                        <h3><i class="fa-solid fa-user-astronaut"></i> PILOT PROFILE</h3>
+                        <div class="pilot-info">
+                            <div class="avatar"><i class="fa-solid fa-ghost"></i></div>
+                            <div>
+                                <div class="pilot-name" id="pilot-name-display">GUEST</div>
+                                <div class="pilot-rank" id="pilot-rank-display">Rank: --</div>
+                            </div>
+                        </div>
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <span class="label">BEST SCORE</span>
+                                <span class="value" id="pilot-best-score">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="label">FLIGHTS</span>
+                                <span class="value" id="pilot-games-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Telemetry Log -->
+                    <div class="console-card glass-panel">
+                        <h3><i class="fa-solid fa-terminal"></i> TELEMETRY LOG</h3>
+                        <div class="terminal-body" id="terminal-log">
+                            <div class="term-line system-msg">[SYSTEM] Terminal initialized. Waiting for pilot link...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Panel (Game Screen) -->
+                <div class="center-panel">
+                    <div class="game-window glass-panel">
+                        <div class="window-header">
+                            <div class="dots">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                            </div>
+                            <div class="window-title">CLUMSY_BIRD_OS_v2.0.sh</div>
+                            <div class="window-status" id="live-status"><span class="status-indicator online"></span> SIM_ACTIVE</div>
+                            <button id="window-fullscreen-btn" class="action-btn" title="Toggle Fullscreen" style="width: 24px; height: 24px; font-size: 10px; margin-left: 10px;"><i class="fa-solid fa-expand"></i></button>
+                        </div>
+                        
+                        <div id="screen">
+                            <!-- CRT scanlines overlay -->
+                            <div class="crt-overlay"></div>
+                            
+                            <!-- Custom preflight start overlay -->
+                            <div id="preflight-overlay" class="preflight-overlay hidden">
+                                <div class="preflight-card glass-panel">
+                                    <div class="preflight-status"><i class="fa-solid fa-triangle-exclamation"></i> FLIGHT SYSTEMS AWAITING IGNITION</div>
+                                    <div class="preflight-instruction">CLICK ANYWHERE ON SCREEN TO LAUNCH</div>
+                                    <button id="btn-preflight-start" class="submit-btn preflight-btn"><i class="fa-solid fa-power-off"></i> ENGAGE FLIGHT PROPULSION</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Live game score indicator -->
+                        <div id="live-score-container" class="live-score-container hidden">
+                            <div class="live-score-value" id="live-score-val">0</div>
+                            <div class="live-score-label">STEPS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel (Controls & Leaderboard) -->
+                <div class="side-panel right-panel">
+                    <!-- Controls & Customizations -->
+                    <div class="settings-card glass-panel">
+                        <h3><i class="fa-solid fa-sliders"></i> CONSOLE CONTROLS</h3>
+                        
+                        <div class="setting-item flex-between">
+                            <span>CRT Display Scanlines</span>
+                            <label class="switch">
+                                <input type="checkbox" id="crt-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <span>Thrust Audio Volume</span>
+                            <div class="volume-control">
+                                <button id="btn-mute" class="action-btn"><i class="fa-solid fa-volume-high"></i></button>
+                                <input type="range" id="volume-slider" min="0" max="100" value="50">
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <span>Dashboard Theme Matrix</span>
+                            <div class="theme-console">
+                                <div class="theme-card-btn active" data-theme="none">
+                                    <div class="theme-indicator"></div>
+                                    <div class="theme-details">
+                                        <div class="theme-name">Standard Grid</div>
+                                        <div class="theme-desc">Cyber blue neon frames</div>
+                                    </div>
+                                </div>
+                                <div class="theme-card-btn" data-theme="cyber">
+                                    <div class="theme-indicator"></div>
+                                    <div class="theme-details">
+                                        <div class="theme-name">Neon Cyber</div>
+                                        <div class="theme-desc">Vibrant magenta and pink grids</div>
+                                    </div>
+                                </div>
+                                <div class="theme-card-btn" data-theme="vapor">
+                                    <div class="theme-indicator"></div>
+                                    <div class="theme-details">
+                                        <div class="theme-name">Sunset Vapor</div>
+                                        <div class="theme-desc">Pastel cyan and pink sunset drive</div>
+                                    </div>
+                                </div>
+                                <div class="theme-card-btn" data-theme="matrix">
+                                    <div class="theme-indicator"></div>
+                                    <div class="theme-details">
+                                        <div class="theme-name">Matrix Terminal</div>
+                                        <div class="theme-desc">Phosphor green code lines</div>
+                                    </div>
+                                </div>
+                                <div class="theme-card-btn" data-theme="monochrome">
+                                    <div class="theme-indicator"></div>
+                                    <div class="theme-details">
+                                        <div class="theme-name">Noir Console</div>
+                                        <div class="theme-desc">Monochrome gray vector frames</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <span>View Options</span>
+                            <button id="fullscreen-btn" class="submit-btn toggle-fullscreen"><i class="fa-solid fa-expand"></i> ACTIVATE FULLSCREEN</button>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard -->
+                    <div class="leaderboard-card glass-panel">
+                        <h3 style="display: flex; align-items: center;">
+                            <i class="fa-solid fa-trophy"></i> TOP RECORDS
+                            <button id="btn-bulk-delete" class="action-btn hidden" title="Purge Selected" onclick="requestBulkDelete()" style="margin-left: auto; width: 24px; height: 24px; font-size: 10px; color: var(--accent-magenta); border-color: rgba(255, 0, 127, 0.3);"><i class="fa-solid fa-trash-can"></i></button>
+                        </h3>
+                        <div class="leaderboard-list" id="leaderboard-list">
+                            <!-- Realtime rankings populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Overlay Modals -->
+            <!-- Name Prompt Modal -->
+            <div id="name-modal" class="modal-overlay">
+                <div class="modal-content glass-panel">
+                    <!-- Cyber corner brackets -->
+                    <div class="corner-bracket top-left"></div>
+                    <div class="corner-bracket top-right"></div>
+                    <div class="corner-bracket bottom-left"></div>
+                    <div class="corner-bracket bottom-right"></div>
+                    <h2>SECURE ACCESS PORTAL</h2>
+                    <p>Enter pilot credentials to initialize flight simulation link.</p>
+                    <form id="name-form" onsubmit="event.preventDefault(); submitName();">
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <span class="prompt-arrow">&gt;</span>
+                                <input type="text" id="pilot-name-input" required maxlength="12" placeholder="PILOT HANDLE" autocomplete="off">
+                            </div>
+                            <div class="input-line"></div>
+                        </div>
+                        <button type="submit" class="submit-btn">INITIALIZE SIMULATION</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Game Over Overlay -->
+            <div id="gameover-overlay" class="modal-overlay hidden">
+                <div class="modal-content glass-panel gameover-content">
+                    <!-- Cyber corner brackets -->
+                    <div class="corner-bracket top-left"></div>
+                    <div class="corner-bracket top-right"></div>
+                    <div class="corner-bracket bottom-left"></div>
+                    <div class="corner-bracket bottom-right"></div>
+                    <h1 class="glitch-text" data-text="SYSTEM FAILURE">SYSTEM FAILURE</h1>
+                    <p class="status-subtext">The bird collided with structural elements.</p>
+                    <div class="game-results">
+                        <div class="result-box">
+                            <span class="result-label">FINAL SCORE</span>
+                            <span class="result-val highlight" id="final-score">0</span>
+                        </div>
+                        <div class="result-box">
+                            <span class="result-label">YOUR RANK</span>
+                            <span class="result-val" id="final-rank">#--</span>
+                        </div>
+                    </div>
+                    <div class="high-score-announcement hidden" id="highscore-badge">
+                        <i class="fa-solid fa-crown"></i> NEW PERSONAL RECORD!
+                    </div>
+                    <div class="button-row" style="flex-wrap: wrap;">
+                        <button id="btn-restart-same" class="confirm-btn pulse-btn" style="flex: 1 1 100%;">
+                            <i class="fa-solid fa-rotate-right"></i> REDEPLOY <span id="redeploy-name-holder">PILOT</span>
+                        </button>
+                        <button id="btn-restart-new" class="cancel-btn" style="flex: 1 1 45%;">
+                            <i class="fa-solid fa-user-plus"></i> NEW PILOT
+                        </button>
+                        <button id="btn-go-leaderboard" class="cancel-btn" style="flex: 1 1 45%; background: rgba(0, 229, 255, 0.05); border-color: rgba(0, 229, 255, 0.2);">
+                            <i class="fa-solid fa-ranking-star"></i> LEADERBOARD
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secure Deletion Passcode Modal -->
+            <div id="password-modal" class="modal-overlay hidden">
+                <div class="modal-content glass-panel passcode-content">
+                    <!-- Cyber corner brackets -->
+                    <div class="corner-bracket top-left"></div>
+                    <div class="corner-bracket top-right"></div>
+                    <div class="corner-bracket bottom-left"></div>
+                    <div class="corner-bracket bottom-right"></div>
+                    <h2><i class="fa-solid fa-shield-halved"></i> ACCESS RESTRICTED</h2>
+                    <p>Enter administrative passcode to purge flight record from database.</p>
+                    <form id="password-form" onsubmit="event.preventDefault(); verifyPassword();">
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <span class="prompt-arrow">&gt;</span>
+                                <input type="password" id="passcode-input" required placeholder="ENTER PASSCODE" autocomplete="off">
+                            </div>
+                            <div class="input-line"></div>
+                        </div>
+                        <div class="error-text hidden" id="passcode-error">INVALID AUTHENTICATION TOKEN</div>
+                        <div class="button-row">
+                            <button type="button" class="cancel-btn" onclick="closePasswordModal()">CANCEL</button>
+                            <button type="submit" class="confirm-btn">VERIFY & PURGE</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry & Leaderboard Logic -->
+        <script type="text/javascript">
+            // Global Deletion Targets
+            var itemsToDeleteIndices = [];
+
+            // Telemetry logging routine
+            function logTelemetry(msg, type) {
+                var log = document.getElementById('terminal-log');
+                if (!log) return;
+                
+                var time = new Date().toLocaleTimeString();
+                var className = type ? 'term-line ' + type + '-msg' : 'term-line';
+                var newline = document.createElement('div');
+                newline.className = className;
+                newline.innerHTML = '<span class="term-time">[' + time + ']</span> ' + msg;
+                log.appendChild(newline);
+                log.scrollTop = log.scrollHeight;
+                
+                // Limit to 45 logs
+                while (log.childNodes.length > 45) {
+                    log.removeChild(log.firstChild);
+                }
+            }
+
+            // Interactive mesh background particle canvas
+            function initAmbientBackground() {
+                var canvas = document.getElementById('ambient-canvas');
+                if (!canvas) return;
+                var ctx = canvas.getContext('2d');
+                
+                var particles = [];
+                var count = 38;
+                
+                function resize() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                
+                window.addEventListener('resize', resize);
+                resize();
+                
+                // Generate particle nodes
+                for (var i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        vx: (Math.random() - 0.5) * 0.45,
+                        vy: (Math.random() - 0.5) * 0.45,
+                        radius: Math.random() * 2 + 1,
+                        alpha: Math.random() * 0.4 + 0.1
+                    });
+                }
+                
+                var mouse = { x: -2000, y: -2000 };
+                window.addEventListener('mousemove', function(e) {
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                });
+                
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Fetch cyan accent color dynamically from styles
+                    var accent = getComputedStyle(document.body).getPropertyValue('--accent-cyan').trim() || '#00e5ff';
+                    ctx.fillStyle = accent;
+                    
+                    for (var i = 0; i < count; i++) {
+                        var p = particles[i];
+                        
+                        // Drift
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        
+                        // Wrap edges
+                        if (p.x < 0) p.x = canvas.width;
+                        if (p.x > canvas.width) p.x = 0;
+                        if (p.y < 0) p.y = canvas.height;
+                        if (p.y > canvas.height) p.y = 0;
+                        
+                        // Mouse repulsion effect
+                        var dx = mouse.x - p.x;
+                        var dy = mouse.y - p.y;
+                        var dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 160) {
+                            p.x -= (dx / dist) * 0.7;
+                            p.y -= (dy / dist) * 0.7;
+                        }
+                        
+                        ctx.beginPath();
+                        ctx.globalAlpha = p.alpha;
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // Render connecting mesh paths
+                    for (var i = 0; i < count; i++) {
+                        for (var j = i + 1; j < count; j++) {
+                            var p1 = particles[i];
+                            var p2 = particles[j];
+                            var dx = p1.x - p2.x;
+                            var dy = p1.y - p2.y;
+                            var dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 120) {
+                                ctx.beginPath();
+                                ctx.strokeStyle = accent;
+                                ctx.globalAlpha = (1 - dist / 120) * 0.08;
+                                ctx.lineWidth = 0.5;
+                                ctx.moveTo(p1.x, p1.y);
+                                ctx.lineTo(p2.x, p2.y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    
+                    requestAnimationFrame(animate);
+                }
+                animate();
+            }
+
+            // Real-time system clock
+            function startSystemClock() {
+                setInterval(function() {
+                    var now = new Date();
+                    var timeStr = now.toTimeString().split(' ')[0];
+                    document.getElementById('hdr-system-time').innerText = timeStr;
+                }, 1000);
+            }
+            
+            // Load leaderboard from localStorage
+            function getLeaderboard() {
+                var lb = localStorage.getItem('clumsy_leaderboard');
+                return lb ? JSON.parse(lb) : [];
+            }
+
+            // Save score to leaderboard (holds all historical score entries for event)
+            function saveScore(name, score) {
+                if (!name || score === undefined) return;
+                var lb = getLeaderboard();
+                
+                // Add new entry
+                lb.push({ name: name, score: score, date: new Date().toISOString() });
+                
+                // Sort descending by score
+                lb.sort(function(a, b) { return b.score - a.score; });
+                
+                localStorage.setItem('clumsy_leaderboard', JSON.stringify(lb));
+                updateLeaderboardUI();
+                updatePilotStats();
+            }
+
+            // Update bulk delete button visibility
+            function updateBulkDeleteVisibility() {
+                var checkboxes = document.querySelectorAll('.lb-item-checkbox:checked');
+                var btn = document.getElementById('btn-bulk-delete');
+                if (btn) {
+                    if (checkboxes.length > 0) {
+                        btn.classList.remove('hidden');
+                    } else {
+                        btn.classList.add('hidden');
+                    }
+                }
+            }
+
+            // Update the Leaderboard HTML UI with ratio bars, medals and delete option
+            function updateLeaderboardUI() {
+                var container = document.getElementById('leaderboard-list');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                // Hide bulk delete button on redraw
+                var btnBulk = document.getElementById('btn-bulk-delete');
+                if (btnBulk) {
+                    btnBulk.classList.add('hidden');
+                }
+
+                var lb = getLeaderboard();
+                
+                if (lb.length === 0) {
+                    container.innerHTML = '<div class="leaderboard-empty">No records yet. Be the first!</div>';
+                    return;
+                }
+
+                var pilotName = localStorage.getItem('clumsy_player_name') || '';
+                
+                // Find highest score to calculate ratio lengths
+                var maxScore = 10;
+                lb.forEach(function(e) {
+                    if (e.score > maxScore) maxScore = e.score;
+                });
+
+                lb.forEach(function(entry, index) {
+                    var rank = index + 1;
+                    var rankHtml = '';
+                    var rankClass = 'rank-other';
+                    
+                    if (rank === 1) {
+                        rankHtml = '<i class="fa-solid fa-crown"></i>';
+                        rankClass = 'rank-1';
+                    } else if (rank === 2) {
+                        rankHtml = '<i class="fa-solid fa-award"></i>';
+                        rankClass = 'rank-2';
+                    } else if (rank === 3) {
+                        rankHtml = '<i class="fa-solid fa-medal"></i>';
+                        rankClass = 'rank-3';
+                    } else {
+                        rankHtml = rank;
+                    }
+
+                    var isUser = entry.name.toLowerCase() === pilotName.toLowerCase();
+                    var itemClass = isUser ? 'leaderboard-item highlight-user' : 'leaderboard-item';
+                    
+                    // Ratio percentage
+                    var ratioPct = Math.max(10, Math.round((entry.score / maxScore) * 100));
+
+                    var html = '<div class="' + itemClass + '">' +
+                        '<label class="lb-checkbox-container" onclick="event.stopPropagation()">' +
+                            '<input type="checkbox" class="lb-item-checkbox" data-index="' + index + '" onchange="updateBulkDeleteVisibility()">' +
+                            '<span class="lb-checkmark"></span>' +
+                        '</label>' +
+                        '<div class="rank-badge ' + rankClass + '">' + rankHtml + '</div>' +
+                        '<div class="leaderboard-name-wrapper">' +
+                            '<div class="leaderboard-name">' + escapeHTML(entry.name) + '</div>' +
+                            '<div class="score-ratio-bar" style="width: ' + ratioPct + '%;"></div>' +
+                        '</div>' +
+                        '<div class="leaderboard-score">' + entry.score + '</div>' +
+                        '<button class="delete-entry-btn" title="Purge Record" onclick="requestDeleteEntry(' + index + ')"><i class="fa-solid fa-trash"></i></button>' +
+                        '</div>';
+                    container.innerHTML += html;
+                });
+            }
+            
+            function escapeHTML(str) {
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+
+            // Request leaderboard entry deletion (prompts modal passcode)
+            function requestDeleteEntry(index) {
+                itemsToDeleteIndices = [index];
+                document.getElementById('passcode-input').value = '';
+                document.getElementById('passcode-error').classList.add('hidden');
+                document.getElementById('password-modal').classList.remove('hidden');
+                
+                // Focus on passcode field
+                setTimeout(function() {
+                    document.getElementById('passcode-input').focus();
+                }, 50);
+            }
+
+            // Request bulk deletion of checked scores
+            function requestBulkDelete() {
+                itemsToDeleteIndices = [];
+                var checkboxes = document.querySelectorAll('.lb-item-checkbox:checked');
+                checkboxes.forEach(function(cb) {
+                    itemsToDeleteIndices.push(parseInt(cb.getAttribute('data-index')));
+                });
+                
+                if (itemsToDeleteIndices.length === 0) return;
+                
+                document.getElementById('passcode-input').value = '';
+                document.getElementById('passcode-error').classList.add('hidden');
+                document.getElementById('password-modal').classList.remove('hidden');
+                
+                setTimeout(function() {
+                    document.getElementById('passcode-input').focus();
+                }, 50);
+            }
+
+            // Close passcode verification modal
+            function closePasswordModal() {
+                document.getElementById('password-modal').classList.add('hidden');
+                itemsToDeleteIndices = [];
+            }
+
+            // Verify passcode and delete entry
+            function verifyPassword() {
+                var inputPass = document.getElementById('passcode-input').value;
+                var modalContent = document.querySelector('#password-modal .modal-content');
+                
+                if (inputPass === "Nikita@271007") {
+                    var lb = getLeaderboard();
+                    
+                    // Sort indices in descending order to prevent index shifting while splicing
+                    itemsToDeleteIndices.sort(function(a, b) { return b - a; });
+                    
+                    itemsToDeleteIndices.forEach(function(index) {
+                        if (index >= 0 && index < lb.length) {
+                            var removed = lb.splice(index, 1)[0];
+                            logTelemetry('DATABASE RECORD PURGED. PILOT: ' + removed.name.toUpperCase() + ' | SCORE: ' + removed.score, 'success');
+                        }
+                    });
+                    
+                    localStorage.setItem('clumsy_leaderboard', JSON.stringify(lb));
+                    closePasswordModal();
+                    updateLeaderboardUI();
+                    updatePilotStats();
+                } else {
+                    document.getElementById('passcode-error').classList.remove('hidden');
+                    
+                    // Trigger input modal shake animation
+                    modalContent.classList.add('shake');
+                    setTimeout(function() {
+                        modalContent.classList.remove('shake');
+                    }, 350);
+                    
+                    logTelemetry('[SECURITY] Unauthorized record purge attempt!', 'danger');
+                }
+            }
+
+            // Get current rank for a score
+            function calculateRank(score) {
+                var lb = getLeaderboard();
+                var tempLb = lb.slice();
+                var pilotName = localStorage.getItem('clumsy_player_name') || 'YOU';
+                
+                tempLb.push({ name: pilotName, score: score });
+                tempLb.sort(function(a, b) { return b.score - a.score; });
+                
+                for (var i = 0; i < tempLb.length; i++) {
+                    if (tempLb[i].score === score) {
+                        return i + 1;
+                    }
+                }
+                return tempLb.length;
+            }
+
+            // Update user pilot stats (left panel)
+            function updatePilotStats() {
+                var name = localStorage.getItem('clumsy_player_name') || 'GUEST';
+                document.getElementById('pilot-name-display').innerText = name;
+                
+                var lb = getLeaderboard();
+                var bestScore = 0;
+                
+                lb.forEach(function(entry) {
+                    if (entry.name.toLowerCase() === name.toLowerCase()) {
+                        if (entry.score > bestScore) {
+                            bestScore = entry.score;
+                        }
+                    }
+                });
+                
+                var personalBest = localStorage.getItem('clumsy_pb_' + name.toLowerCase()) || 0;
+                if (bestScore > personalBest) {
+                    localStorage.setItem('clumsy_pb_' + name.toLowerCase(), bestScore);
+                    personalBest = bestScore;
+                }
+                
+                var totalGames = parseInt(localStorage.getItem('clumsy_games_' + name.toLowerCase()) || 0);
+                
+                document.getElementById('pilot-best-score').innerText = personalBest;
+                document.getElementById('pilot-games-count').innerText = totalGames;
+
+                var rank = calculateRank(parseInt(personalBest));
+                document.getElementById('pilot-rank-display').innerText = personalBest > 0 ? 'Rank: #' + rank : 'Rank: --';
+            }
+
+            // Handle Name submission
+            function submitName() {
+                var nameInput = document.getElementById('pilot-name-input');
+                var name = nameInput.value.trim();
+                if (name.length > 0) {
+                    localStorage.setItem('clumsy_player_name', name);
+                    document.getElementById('name-modal').classList.add('hidden');
+                    
+                    logTelemetry('PILOT DATA LINK ESTABLISHED. HANDLE: ' + name.toUpperCase(), 'success');
+                    
+                    updatePilotStats();
+                    updateLeaderboardUI();
+                    
+                    // Blur focused elements so window captures spacebar/keyboard input immediately
+                    if (document.activeElement) {
+                        document.activeElement.blur();
+                    }
+                    window.focus();
+                    
+                    // Transition to play state immediately when name is input
+                    if (typeof me !== 'undefined' && me.state) {
+                        if (me.state.isCurrent(me.state.GAME_OVER) || me.state.isCurrent(me.state.MENU)) {
+                            me.state.change(me.state.PLAY);
+                        }
+                    }
+                }
+            }
+
+            // Handle volume, mute and fullscreen controllers
+            function setupControls() {
+                var volumeSlider = document.getElementById('volume-slider');
+                var btnMute = document.getElementById('btn-mute');
+                var appWrapper = document.getElementById('cockpit-wrapper');
+                var crtToggle = document.getElementById('crt-toggle');
+
+                volumeSlider.addEventListener('input', function() {
+                    var vol = volumeSlider.value / 100;
+                    if (typeof me !== 'undefined' && me.audio) {
+                        me.audio.setVolume(vol);
+                        if (vol > 0) {
+                            game.data.muted = false;
+                            btnMute.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                        } else {
+                            game.data.muted = true;
+                            btnMute.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                        }
+                    }
+                    logTelemetry('SYSTEM AUDIO GAIN ADJUSTED TO: ' + volumeSlider.value + '%', 'system');
+                });
+
+                btnMute.addEventListener('click', function() {
+                    if (typeof me !== 'undefined' && me.audio) {
+                        game.data.muted = !game.data.muted;
+                        if (game.data.muted) {
+                            me.audio.disable();
+                            btnMute.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                            logTelemetry('SYSTEM AUDIO: MUTED', 'danger');
+                        } else {
+                            me.audio.enable();
+                            var vol = volumeSlider.value / 100;
+                            me.audio.setVolume(vol || 0.5);
+                            btnMute.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                            logTelemetry('SYSTEM AUDIO: ENABLED', 'success');
+                        }
+                    }
+                });
+
+                // CRT screen toggle check
+                crtToggle.addEventListener('change', function() {
+                    if (crtToggle.checked) {
+                        appWrapper.classList.add('crt-enabled');
+                        logTelemetry('CRT PHOSPHOR FILTER ENABLED', 'system');
+                    } else {
+                        appWrapper.classList.remove('crt-enabled');
+                        logTelemetry('CRT PHOSPHOR FILTER DISABLED', 'system');
+                    }
+                });
+
+                // Theme selection grids
+                var themeBtns = document.querySelectorAll('.theme-card-btn');
+                themeBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        themeBtns.forEach(function(b) { b.classList.remove('active'); });
+                        btn.classList.add('active');
+                        var theme = btn.getAttribute('data-theme');
+                        
+                        document.body.setAttribute('data-theme', theme);
+                        logTelemetry('DASHBOARD MATRIX UPDATED TO: ' + theme.toUpperCase(), 'system');
+                    });
+                });
+            }
+
+            // HTML5 Fullscreen toggle
+            function toggleFullscreen() {
+                var doc = document.documentElement;
+                if (!document.fullscreenElement) {
+                    if (doc.requestFullscreen) {
+                        doc.requestFullscreen();
+                    } else if (doc.mozRequestFullScreen) {
+                        doc.mozRequestFullScreen();
+                    } else if (doc.webkitRequestFullscreen) {
+                        doc.webkitRequestFullscreen();
+                    } else if (doc.msRequestFullscreen) {
+                        doc.msRequestFullscreen();
+                    }
+                    logTelemetry('FULLSCREEN HUD ENVIRONMENT INITIATED', 'success');
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    logTelemetry('FULLSCREEN HUD ENVIRONMENT TERMINATED', 'system');
+                }
+            }
+
+            function setupFullscreen() {
+                var btn1 = document.getElementById('fullscreen-btn');
+                var btn2 = document.getElementById('window-fullscreen-btn');
+                
+                btn1.addEventListener('click', toggleFullscreen);
+                btn2.addEventListener('click', toggleFullscreen);
+                
+                document.addEventListener('fullscreenchange', function() {
+                    var appWrapper = document.getElementById('cockpit-wrapper');
+                    
+                    if (document.fullscreenElement) {
+                        appWrapper.classList.add('fullscreen-active');
+                        btn1.innerHTML = '<i class="fa-solid fa-compress"></i> EXIT FULLSCREEN';
+                        btn2.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                    } else {
+                        appWrapper.classList.remove('fullscreen-active');
+                        btn1.innerHTML = '<i class="fa-solid fa-expand"></i> ACTIVATE FULLSCREEN';
+                        btn2.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                    }
+                });
+            }
+            
+            // Preflight start overlay controllers
+            var preflightActive = false;
+            window.showPreflightOverlay = function() {
+                var overlay = document.getElementById('preflight-overlay');
+                if (overlay) {
+                    overlay.classList.remove('hidden');
+                    preflightActive = false;
+                    setTimeout(function() {
+                        preflightActive = true;
+                    }, 500); // 500ms cooldown to block ghost clicks
+                }
+            };
+
+            window.hidePreflightOverlay = function() {
+                var overlay = document.getElementById('preflight-overlay');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    preflightActive = false;
+                }
+            };
+
+            // Hooks called from melonJS
+            window.onJump = function() {
+                var force = (1.1 + Math.random() * 0.4).toFixed(2);
+                logTelemetry('FLIGHT JUMP COMMITTED. ACCEL: ' + force + 'G', 'flight');
+                
+                var cognitiveIdx = Math.floor(94 + Math.random() * 7);
+                document.getElementById('hdr-cognitive-ratio').innerText = cognitiveIdx + '%';
+            };
+
+            window.onScoreUpdate = function(score) {
+                var liveScoreContainer = document.getElementById('live-score-container');
+                liveScoreContainer.classList.remove('hidden');
+                document.getElementById('live-score-val').innerText = score;
+                
+                var scoreVal = document.getElementById('live-score-val');
+                scoreVal.style.transform = 'scale(1.2)';
+                setTimeout(function() { scoreVal.style.transform = 'scale(1)'; }, 150);
+                
+                logTelemetry('PIPE INTERCEPT CLEAR. FLIGHT STEPS: ' + score, 'success');
+            };
+
+            window.onResetPlayScreen = function() {
+                var wrapper = document.getElementById('cockpit-wrapper');
+                if (wrapper) {
+                    wrapper.classList.remove('game-playing');
+                    wrapper.classList.remove('gameover-active');
+                }
+            };
+
+            window.onGameStart = function() {
+                var liveScoreContainer = document.getElementById('live-score-container');
+                liveScoreContainer.classList.remove('hidden');
+                document.getElementById('live-score-val').innerText = '0';
+                document.getElementById('live-status').innerHTML = '<span class="status-indicator online"></span> IN FLIGHT';
+                document.getElementById('hdr-pilot-status').innerText = 'IN FLIGHT';
+                document.getElementById('gameover-overlay').classList.add('hidden');
+                
+                var wrapper = document.getElementById('cockpit-wrapper');
+                if (wrapper) {
+                    wrapper.classList.add('game-playing');
+                }
+                
+                logTelemetry('FLIGHT SIMULATION COMMENCED. GRAVITY: 0.2G', 'system');
+            };
+
+            window.onGameOver = function(score) {
+                var name = localStorage.getItem('clumsy_player_name') || 'PILOT';
+                
+                var totalGames = parseInt(localStorage.getItem('clumsy_games_' + name.toLowerCase()) || 0);
+                localStorage.setItem('clumsy_games_' + name.toLowerCase(), totalGames + 1);
+
+                var personalBest = parseInt(localStorage.getItem('clumsy_pb_' + name.toLowerCase()) || 0);
+                var isNewHighScore = score > personalBest;
+                
+                logTelemetry('COLLISION RECORDED AT SCORE ' + score + '. SIMULATION INTERRUPTED', 'danger');
+
+                var wrapper = document.getElementById('cockpit-wrapper');
+                if (wrapper) {
+                    wrapper.classList.remove('game-playing');
+                    wrapper.classList.add('gameover-active');
+                }
+
+                saveScore(name, score);
+
+                var overlay = document.getElementById('gameover-overlay');
+                overlay.classList.remove('hidden');
+                
+                document.getElementById('final-score').innerText = score;
+                
+                var rank = calculateRank(score);
+                document.getElementById('final-rank').innerText = '#' + rank;
+                
+                var badge = document.getElementById('highscore-badge');
+                if (isNewHighScore) {
+                    badge.classList.remove('hidden');
+                    logTelemetry('NEW COGNITIVE SCORE MAXIMUM DECLARED: ' + score, 'success');
+                } else {
+                    badge.classList.add('hidden');
+                }
+
+                // Update Redeploy name holder in buttons
+                document.getElementById('redeploy-name-holder').innerText = name.toUpperCase();
+
+                document.getElementById('live-status').innerHTML = '<span class="status-indicator" style="background:#ff007f;box-shadow:0 0 6px #ff007f;"></span> CRASHED';
+                document.getElementById('hdr-pilot-status').innerText = 'CRASHED';
+            };
+
+            // Initialize layout on DOM load
+            window.addEventListener('DOMContentLoaded', function() {
+                setupControls();
+                setupFullscreen();
+                startSystemClock();
+                initAmbientBackground();
+                
+                // ALWAYS show name modal on start so user can verify pilot name, pre-fill if exists
+                var savedName = localStorage.getItem('clumsy_player_name') || '';
+                document.getElementById('pilot-name-input').value = savedName;
+                document.getElementById('name-modal').classList.remove('hidden');
+                
+                logTelemetry('AWAITING PILOT REGISTRATION LINK...', 'system');
+                updatePilotStats();
+                updateLeaderboardUI();
+                
+                // Prompt for same user redeploy (restarts game immediately)
+                document.getElementById('btn-restart-same').addEventListener('click', function() {
+                    document.getElementById('gameover-overlay').classList.add('hidden');
+                    if (document.activeElement) {
+                        document.activeElement.blur();
+                    }
+                    window.focus();
+                    
+                    if (typeof me !== 'undefined' && me.state) {
+                        me.state.change(me.state.PLAY);
+                    }
+                });
+
+                // Prompt for new user registration (clears name and opens name modal)
+                document.getElementById('btn-restart-new').addEventListener('click', function() {
+                    document.getElementById('gameover-overlay').classList.add('hidden');
+                    
+                    // Reset input and show name modal
+                    document.getElementById('pilot-name-input').value = '';
+                    document.getElementById('name-modal').classList.remove('hidden');
+                    
+                    setTimeout(function() {
+                        document.getElementById('pilot-name-input').focus();
+                        document.getElementById('pilot-name-input').select();
+                    }, 50);
+                });
+
+                // View Leaderboard navigation scroll and highlight handler
+                document.getElementById('btn-go-leaderboard').addEventListener('click', function() {
+                    document.getElementById('gameover-overlay').classList.add('hidden');
+                    if (document.fullscreenElement) {
+                        if (window.innerWidth <= 992) {
+                            document.exitFullscreen().catch(function() {});
+                        }
+                    }
+                    setTimeout(function() {
+                        var lbCard = document.querySelector('.right-panel');
+                        if (lbCard) {
+                            lbCard.scrollIntoView({ behavior: 'smooth' });
+                            lbCard.style.boxShadow = '0 0 35px rgba(0, 229, 255, 0.4)';
+                            lbCard.style.borderColor = 'var(--accent-cyan)';
+                            setTimeout(function() {
+                                lbCard.style.boxShadow = '';
+                                lbCard.style.borderColor = '';
+                            }, 1800);
+                        }
+                        logTelemetry('TELEMETRY TARGET ACQUIRED: TOP RECORDS LIST. CLICK GAME WINDOW HEADER TO RETRACT.', 'info');
+                    }, 200);
+                });
+
+                // Preflight start simulation handler (handles clicking anywhere on the overlay screen)
+                document.getElementById('preflight-overlay').addEventListener('click', function(e) {
+                    if (!preflightActive) return;
+                    
+                    window.hidePreflightOverlay();
+                    if (document.activeElement) {
+                        document.activeElement.blur();
+                    }
+                    window.focus();
+                    
+                    if (window.triggerSimulationStart) {
+                        window.triggerSimulationStart();
+                    }
+                });
+            });
+        </script>
+
+        <!-- melonJS Library & Source files loaded directly -->
         <script type="text/javascript" src="js/melonJS-min.js" ></script>
-        <script type="text/javascript" src="build/clumsy-min.js" ></script>
+        <script type="text/javascript" src="js/game.js" ></script>
+        <script type="text/javascript" src="js/entities/entities.js" ></script>
+        <script type="text/javascript" src="js/entities/HUD.js" ></script>
+        <script type="text/javascript" src="js/screens/title.js" ></script>
+        <script type="text/javascript" src="js/screens/play.js" ></script>
+        <script type="text/javascript" src="js/screens/gameover.js" ></script>
+
         <script type="text/javascript">
             window.onReady(function onReady() {
                 game.onload();
             });
         </script>
-
     </body>
 </html>
