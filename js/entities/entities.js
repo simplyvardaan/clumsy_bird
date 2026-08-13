@@ -41,7 +41,22 @@ game.BirdEntity = me.Entity.extend({
             return this._super(me.Entity, 'update', [dt]);
         }
         this.renderable.currentTransform.identity();
-        if (me.input.isKeyPressed('fly')) {
+        if (window.gestureControlActive) {
+            if (window.neuralThrustActive) {
+                this.gravityForce = -4.2;
+                this.pos.y += me.timer.tick * this.gravityForce;
+                if (this.pos.y < 0) this.pos.y = 0; // Prevent sky crash on gesture mode
+                this.currentAngle = this.maxAngleRotation;
+                
+                if (Math.random() < 0.08) {
+                    me.audio.play('wing');
+                }
+            } else {
+                this.gravityForce = 4.2;
+                this.pos.y += me.timer.tick * this.gravityForce;
+                this.currentAngle = this.maxAngleRotationDown;
+            }
+        } else if (me.input.isKeyPressed('fly')) {
             me.audio.play('wing');
             if (window.onJump) {
                 window.onJump();

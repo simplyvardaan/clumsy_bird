@@ -6,7 +6,7 @@
         <link rel="apple-touch-icon-precomposed" sizes="120x120" href="data/img/touch-icon-iphone-retina.png"/>
         <link rel="shortcut icon" href="data/img/favicon.ico">
         <!-- Cache-busting version query parameter added -->
-        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=120">
+        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=130">
         <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -935,6 +935,7 @@
                 ctx.shadowBlur = 0;
             }
 
+            var gestureFrameCount = 0;
             function initHandGestures() {
                 var video = document.getElementById('gesture-video');
                 var canvas = document.getElementById('gesture-canvas');
@@ -942,6 +943,9 @@
                 var status = document.getElementById('gesture-status');
                 
                 status.innerText = "INITIALIZING WEBCAM...";
+                window.gestureControlActive = true;
+                window.neuralThrustActive = false;
+                gestureFrameCount = 0;
                 
                 handsTracker = new Hands({
                     locateFile: function(file) {
@@ -951,9 +955,9 @@
                 
                 handsTracker.setOptions({
                     maxNumHands: 1,
-                    modelComplexity: 1,
-                    minDetectionConfidence: 0.7,
-                    minTrackingConfidence: 0.7
+                    modelComplexity: 0, // Lite model: extremely fast, low lag!
+                    minDetectionConfidence: 0.55,
+                    minTrackingConfidence: 0.55
                 });
                 
                 handsTracker.onResults(function(results) {
@@ -966,47 +970,51 @@
                     ctx.restore();
                     
                     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                        status.innerText = "PILOT LINK ACTIVE";
-                        status.className = "gesture-status active";
-                        
                         var landmarks = results.multiHandLandmarks[0];
                         drawNeonSkeleton(ctx, landmarks);
                         
-                        var thumb = landmarks[4];
-                        var indexF = landmarks[8];
+                        // Detect palm open vs fist closed
+                        var indexKnuckle = landmarks[6].y;
+                        var indexTip = landmarks[8].y;
+                        var middleKnuckle = landmarks[10].y;
+                        var middleTip = landmarks[12].y;
+                        var ringKnuckle = landmarks[14].y;
+                        var ringTip = landmarks[16].y;
+                        var pinkyKnuckle = landmarks[18].y;
+                        var pinkyTip = landmarks[20].y;
                         
-                        var dx = thumb.x - indexF.x;
-                        var dy = thumb.y - indexF.y;
-                        var dz = thumb.z - indexF.z;
-                        var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                        var openFingers = 0;
+                        if (indexTip < indexKnuckle) openFingers++;
+                        if (middleTip < middleKnuckle) openFingers++;
+                        if (ringTip < ringKnuckle) openFingers++;
+                        if (pinkyTip < pinkyKnuckle) openFingers++;
                         
-                        var isPinching = dist < 0.055;
+                        // Palm is open if 3 or more fingers are pointing up!
+                        var isOpenPalm = openFingers >= 3;
                         
-                        if (isPinching && !lastPinchState) {
-                            status.innerText = "THRUST TRIGGERED";
+                        if (isOpenPalm) {
+                            window.neuralThrustActive = true;
+                            status.innerText = "THRUST ENGAGED (ASCENDING)";
+                            status.className = "gesture-status active";
+                        } else {
+                            window.neuralThrustActive = false;
+                            status.innerText = "THRUST OFFLINE (DESCENDING)";
                             status.className = "gesture-status detecting";
-                            
-                            if (typeof me !== 'undefined' && me.input) {
-                                me.input.triggerKeyEvent(me.input.KEY.SPACE, true);
-                                setTimeout(function() {
-                                    me.input.triggerKeyEvent(me.input.KEY.SPACE, false);
-                                }, 50);
-                            }
-                            
-                            logTelemetry('NEURAL GESTURE SIGNAL ENCRYPTED: PINCH FLAP', 'flight');
                         }
-                        lastPinchState = isPinching;
                     } else {
                         status.innerText = "AWAITING HAND SIGNALS...";
                         status.className = "gesture-status";
-                        lastPinchState = false;
+                        window.neuralThrustActive = false;
                     }
                 });
                 
                 cameraHelper = new Camera(video, {
                     onFrame: async function() {
-                        if (handsTracker) {
-                            await handsTracker.send({image: video});
+                        gestureFrameCount++;
+                        if (gestureFrameCount % 2 === 0) { // Throttle: process every 2nd frame to prevent CPU lag
+                            if (handsTracker) {
+                                await handsTracker.send({image: video});
+                            }
                         }
                     },
                     width: 320,
@@ -1023,6 +1031,8 @@
 
             function stopHandGestures() {
                 logTelemetry('SUSPENDING NEURAL COMMAND LINK...', 'system');
+                window.gestureControlActive = false;
+                window.neuralThrustActive = false;
                 
                 if (cameraHelper) {
                     cameraHelper.stop();
