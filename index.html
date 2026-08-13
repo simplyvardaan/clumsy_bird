@@ -6,7 +6,7 @@
         <link rel="apple-touch-icon-precomposed" sizes="120x120" href="data/img/touch-icon-iphone-retina.png"/>
         <link rel="shortcut icon" href="data/img/favicon.ico">
         <!-- Cache-busting version query parameter added -->
-        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=110">
+        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=120">
         <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -76,6 +76,21 @@
                         </div>
                     </div>
                     
+                    <!-- Gesture Command Feed -->
+                    <div id="gesture-card" class="gesture-card glass-panel hidden">
+                        <!-- Cyber corner brackets -->
+                        <div class="corner-bracket top-left"></div>
+                        <div class="corner-bracket top-right"></div>
+                        <div class="corner-bracket bottom-left"></div>
+                        <div class="corner-bracket bottom-right"></div>
+                        <h3><i class="fa-solid fa-hand"></i> GESTURE FEED</h3>
+                        <div class="gesture-container">
+                            <video id="gesture-video" width="320" height="240" autoplay playsinline style="display:none;"></video>
+                            <canvas id="gesture-canvas" width="240" height="180"></canvas>
+                        </div>
+                        <div class="gesture-status" id="gesture-status">LINK OFFLINE</div>
+                    </div>
+                    
                     <!-- Telemetry Log -->
                     <div class="console-card glass-panel">
                         <h3><i class="fa-solid fa-terminal"></i> TELEMETRY LOG</h3>
@@ -131,6 +146,14 @@
                             <span>CRT Display Scanlines</span>
                             <label class="switch">
                                 <input type="checkbox" id="crt-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item flex-between">
+                            <span>Neural Hand Gesture Control</span>
+                            <label class="switch">
+                                <input type="checkbox" id="gesture-toggle">
                                 <span class="slider"></span>
                             </label>
                         </div>
@@ -728,6 +751,21 @@
                     }
                 });
 
+                // Neural gesture toggle check
+                var gestureToggle = document.getElementById('gesture-toggle');
+                var gestureCard = document.getElementById('gesture-card');
+                gestureToggle.addEventListener('change', function() {
+                    if (gestureToggle.checked) {
+                        gestureCard.classList.remove('hidden');
+                        loadMediaPipe(function() {
+                            initHandGestures();
+                        });
+                    } else {
+                        gestureCard.classList.add('hidden');
+                        stopHandGestures();
+                    }
+                });
+
                 // Theme selection grids
                 var themeBtns = document.querySelectorAll('.theme-card-btn');
                 themeBtns.forEach(function(btn) {
@@ -812,6 +850,211 @@
                     preflightActive = false;
                 }
             };
+
+            // MediaPipe Hands Gesture Tracking logic
+            var mediaPipeLoaded = false;
+            var cameraStream = null;
+            var handsTracker = null;
+            var cameraHelper = null;
+            var lastPinchState = false;
+
+            function loadMediaPipe(callback) {
+                if (mediaPipeLoaded) {
+                    callback();
+                    return;
+                }
+                
+                logTelemetry('LOADING NEURAL HAND GESTURE MODEL...', 'system');
+                
+                var s1 = document.createElement('script');
+                s1.src = "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js";
+                s1.onload = function() {
+                    var s2 = document.createElement('script');
+                    s2.src = "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
+                    s2.onload = function() {
+                        mediaPipeLoaded = true;
+                        logTelemetry('NEURAL HAND MODEL LOADED SUCCESSFULLY.', 'success');
+                        callback();
+                    };
+                    document.body.appendChild(s2);
+                };
+                document.body.appendChild(s1);
+            }
+
+            function drawNeonSkeleton(ctx, landmarks) {
+                var width = ctx.canvas.width;
+                var height = ctx.canvas.height;
+                var connections = [
+                    [0, 1], [1, 2], [2, 3], [3, 4],
+                    [0, 5], [5, 6], [6, 7], [7, 8],
+                    [9, 10], [10, 11], [11, 12],
+                    [13, 14], [14, 15], [15, 16],
+                    [0, 17], [17, 18], [18, 19], [19, 20],
+                    [5, 9], [9, 13], [13, 17]
+                ];
+                
+                ctx.strokeStyle = '#00e5ff';
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = '#00e5ff';
+                ctx.shadowBlur = 4;
+                
+                connections.forEach(function(conn) {
+                    var p1 = landmarks[conn[0]];
+                    var p2 = landmarks[conn[1]];
+                    
+                    var x1 = (1 - p1.x) * width;
+                    var y1 = p1.y * height;
+                    var x2 = (1 - p2.x) * width;
+                    var y2 = p2.y * height;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                });
+                
+                ctx.shadowBlur = 6;
+                landmarks.forEach(function(pt, idx) {
+                    var x = (1 - pt.x) * width;
+                    var y = pt.y * height;
+                    
+                    if (idx === 4 || idx === 8) {
+                        ctx.fillStyle = '#ff007f';
+                        ctx.shadowColor = '#ff007f';
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = '#00e5ff';
+                        ctx.shadowColor = '#00e5ff';
+                        ctx.beginPath();
+                        ctx.arc(x, y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+                ctx.shadowBlur = 0;
+            }
+
+            function initHandGestures() {
+                var video = document.getElementById('gesture-video');
+                var canvas = document.getElementById('gesture-canvas');
+                var ctx = canvas.getContext('2d');
+                var status = document.getElementById('gesture-status');
+                
+                status.innerText = "INITIALIZING WEBCAM...";
+                
+                handsTracker = new Hands({
+                    locateFile: function(file) {
+                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    }
+                });
+                
+                handsTracker.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.7
+                });
+                
+                handsTracker.onResults(function(results) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.save();
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                    
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        status.innerText = "PILOT LINK ACTIVE";
+                        status.className = "gesture-status active";
+                        
+                        var landmarks = results.multiHandLandmarks[0];
+                        drawNeonSkeleton(ctx, landmarks);
+                        
+                        var thumb = landmarks[4];
+                        var indexF = landmarks[8];
+                        
+                        var dx = thumb.x - indexF.x;
+                        var dy = thumb.y - indexF.y;
+                        var dz = thumb.z - indexF.z;
+                        var dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                        
+                        var isPinching = dist < 0.055;
+                        
+                        if (isPinching && !lastPinchState) {
+                            status.innerText = "THRUST TRIGGERED";
+                            status.className = "gesture-status detecting";
+                            
+                            if (typeof me !== 'undefined' && me.input) {
+                                me.input.triggerKeyEvent(me.input.KEY.SPACE, true);
+                                setTimeout(function() {
+                                    me.input.triggerKeyEvent(me.input.KEY.SPACE, false);
+                                }, 50);
+                            }
+                            
+                            logTelemetry('NEURAL GESTURE SIGNAL ENCRYPTED: PINCH FLAP', 'flight');
+                        }
+                        lastPinchState = isPinching;
+                    } else {
+                        status.innerText = "AWAITING HAND SIGNALS...";
+                        status.className = "gesture-status";
+                        lastPinchState = false;
+                    }
+                });
+                
+                cameraHelper = new Camera(video, {
+                    onFrame: async function() {
+                        if (handsTracker) {
+                            await handsTracker.send({image: video});
+                        }
+                    },
+                    width: 320,
+                    height: 240
+                });
+                
+                cameraHelper.start().then(function() {
+                    status.innerText = "CAMERA STREAMING LINK ONLINE";
+                }).catch(function(err) {
+                    status.innerText = "CAMERA LINK ERROR";
+                    logTelemetry('GESTURE CAMERA CONNECTION FAILED: ' + err.message, 'danger');
+                });
+            }
+
+            function stopHandGestures() {
+                logTelemetry('SUSPENDING NEURAL COMMAND LINK...', 'system');
+                
+                if (cameraHelper) {
+                    cameraHelper.stop();
+                    cameraHelper = null;
+                }
+                
+                if (handsTracker) {
+                    handsTracker.close();
+                    handsTracker = null;
+                }
+                
+                var video = document.getElementById('gesture-video');
+                if (video && video.srcObject) {
+                    var tracks = video.srcObject.getTracks();
+                    tracks.forEach(function(track) { track.stop(); });
+                    video.srcObject = null;
+                }
+                
+                var canvas = document.getElementById('gesture-canvas');
+                if (canvas) {
+                    var ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                
+                var status = document.getElementById('gesture-status');
+                if (status) {
+                    status.innerText = "LINK OFFLINE";
+                    status.className = "gesture-status";
+                }
+                
+                logTelemetry('NEURAL COMMAND LINK OFFLINE.', 'info');
+            }
 
             // Hooks called from melonJS
             window.onJump = function() {
