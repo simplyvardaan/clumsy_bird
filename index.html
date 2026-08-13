@@ -6,7 +6,7 @@
         <link rel="apple-touch-icon-precomposed" sizes="120x120" href="data/img/touch-icon-iphone-retina.png"/>
         <link rel="shortcut icon" href="data/img/favicon.ico">
         <!-- Cache-busting version query parameter added -->
-        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=130">
+        <link rel="stylesheet" type="text/css" media="screen" href="index.css?v=140">
         <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -973,24 +973,62 @@
                         var landmarks = results.multiHandLandmarks[0];
                         drawNeonSkeleton(ctx, landmarks);
                         
-                        // Detect palm open vs fist closed
-                        var indexKnuckle = landmarks[6].y;
-                        var indexTip = landmarks[8].y;
-                        var middleKnuckle = landmarks[10].y;
-                        var middleTip = landmarks[12].y;
-                        var ringKnuckle = landmarks[14].y;
-                        var ringTip = landmarks[16].y;
-                        var pinkyKnuckle = landmarks[18].y;
-                        var pinkyTip = landmarks[20].y;
+                        // Helper to calculate 3D Euclidean distance
+                        function getDistance3D(p1, p2) {
+                            var dx = p1.x - p2.x;
+                            var dy = p1.y - p2.y;
+                            var dz = p1.z - p2.z;
+                            return Math.sqrt(dx*dx + dy*dy + dz*dz);
+                        }
                         
-                        var openFingers = 0;
-                        if (indexTip < indexKnuckle) openFingers++;
-                        if (middleTip < middleKnuckle) openFingers++;
-                        if (ringTip < ringKnuckle) openFingers++;
-                        if (pinkyTip < pinkyKnuckle) openFingers++;
+                        var wrist = landmarks[0];
+                        var middleMCP = landmarks[9];
+                        var palmSize = getDistance3D(wrist, middleMCP);
                         
-                        // Palm is open if 3 or more fingers are pointing up!
-                        var isOpenPalm = openFingers >= 3;
+                        var isOpenPalm = false;
+                        if (palmSize > 0.005) {
+                            // Calculate distance from MCP joint to finger tip for 4 fingers
+                            var indexMCP = landmarks[5];
+                            var indexTip = landmarks[8];
+                            var indexDist = getDistance3D(indexTip, indexMCP);
+                            
+                            var midMCP = landmarks[9];
+                            var midTip = landmarks[12];
+                            var midDist = getDistance3D(midTip, midMCP);
+                            
+                            var ringMCP = landmarks[13];
+                            var ringTip = landmarks[16];
+                            var ringDist = getDistance3D(ringTip, ringMCP);
+                            
+                            var pinkyMCP = landmarks[17];
+                            var pinkyTip = landmarks[20];
+                            var pinkyDist = getDistance3D(pinkyTip, pinkyMCP);
+                            
+                            var openFingers = 0;
+                            // Threshold: if finger extension distance is greater than 82% of palm size, it's straight
+                            if (indexDist > palmSize * 0.82) openFingers++;
+                            if (midDist > palmSize * 0.82) openFingers++;
+                            if (ringDist > palmSize * 0.82) openFingers++;
+                            if (pinkyDist > palmSize * 0.82) openFingers++;
+                            
+                            isOpenPalm = openFingers >= 3;
+                        }
+                        
+                        // Render a cool HUD alignment crosshair target indicating detection
+                        ctx.strokeStyle = isOpenPalm ? 'rgba(0, 229, 255, 0.4)' : 'rgba(255, 0, 127, 0.4)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(canvas.width - 25, 25, 12, 0, Math.PI * 2);
+                        ctx.moveTo(canvas.width - 25, 10);
+                        ctx.lineTo(canvas.width - 25, 40);
+                        ctx.moveTo(canvas.width - 40, 25);
+                        ctx.lineTo(canvas.width - 10, 25);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = isOpenPalm ? '#00e5ff' : '#ff007f';
+                        ctx.beginPath();
+                        ctx.arc(canvas.width - 25, 25, 4, 0, Math.PI * 2);
+                        ctx.fill();
                         
                         if (isOpenPalm) {
                             window.neuralThrustActive = true;
